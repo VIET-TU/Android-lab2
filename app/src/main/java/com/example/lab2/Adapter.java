@@ -2,19 +2,26 @@ package com.example.lab2;
 
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
+import android.widget.Filter;
+import android.widget.Filterable;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class Adapter extends BaseAdapter {
+public class Adapter extends BaseAdapter implements Filterable {
     private ArrayList<Contact> data;
+
+    private ArrayList<Contact> databackup;
+
     private LayoutInflater inflater;
     private Activity context;
     public void setData(ArrayList<Contact> data) {this.data = data;}
@@ -54,6 +61,14 @@ public class Adapter extends BaseAdapter {
         CheckBox cb = v.findViewById(R.id.checkbox);
         cb.setChecked(data.get(position).isStatus());
 
+        ImageView avatar = v.findViewById(R.id.imageView);
+        if(avatar != null) {
+            Bitmap avt = data.get(position).getAvartar();
+            avatar.setImageBitmap(avt);
+        }
+
+
+
         cb.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
@@ -78,4 +93,44 @@ public class Adapter extends BaseAdapter {
         data.add(contact);
     }
 
+    @Override
+    public Filter getFilter() {
+        Filter f = new Filter() {
+            @Override
+            protected FilterResults performFiltering(CharSequence charSequence) {
+                FilterResults fr = new FilterResults();
+                //Backup dữ liệu: lưu tạm data vào databackup
+                if(databackup==null)
+                    databackup = new ArrayList<>(data);
+                //Nếu chuỗi để filter là rỗng thì khôi phục dữ liệu
+                if(charSequence==null || charSequence.length()==0)
+                {
+                    fr.count = databackup.size();
+                    fr.values = databackup;
+                }
+                //Còn nếu không rỗng thì thực hiện filter
+                else{
+                    ArrayList<Contact> newdata = new ArrayList<>();
+                    for(Contact c:databackup)
+                        if(c.getFullName().toLowerCase().contains(
+                                charSequence.toString().toLowerCase()))
+                            newdata.add(c);
+                    fr.count=newdata.size();
+                    fr.values=newdata;
+                }
+                return fr;
+            }
+
+            @Override
+            protected void publishResults(CharSequence charSequence, FilterResults filterResults) {
+                data = new ArrayList<Contact>();
+                ArrayList<Contact> tmp =
+                        (ArrayList<Contact>)filterResults.values;
+                for(Contact c: tmp)
+                    data.add(c);
+                notifyDataSetChanged();
+            }
+        };
+        return f;
+    }
 }
